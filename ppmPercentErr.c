@@ -193,8 +193,8 @@ int parseInt(char *str, int indx) {
 		r += *s - '0';
 		s++;
 	}
-	if(*s != 0) {
-		printf("Numeric Input must contain only numbers or may start with the character '-'\nWarning: Unable to stop program! Continueing with current values!\n");
+	if(*s != 0 && *s != ' ' && *s != '\n') {
+		printf("Numeric Input must contain only numbers or may start with the character '-', triggerd on %s!\nWarning: Unable to stop program! Continueing with current values!\n", str);
 	}
 	if(inv) r *= -1;
 	return r;
