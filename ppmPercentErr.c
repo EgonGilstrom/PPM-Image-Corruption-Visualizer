@@ -1,3 +1,7 @@
+/*
+	Written in c standard 11 (-std=c11)
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -6,18 +10,18 @@ typedef struct {
 	char p;
 } point;
 
-int debug = 1, w, h, maxC;
+int debug = 0, w, h, maxC;
 double err;
 int parseInt(char *str, int indx);
 inline static void saveImg(char *pix, int n, char *fName, int nLen);
-inline int comparePoints(point *a, point *b);
-inline void generatePoint(point *a);
+int comparePoints(point *a, point *b);
+void generatePoint(point *a);
 
 void main(int argc, char *argv[]) {//Possitive (> 0) return values indicate programatic error, negative (< 0) value indicate user error, 0 indicates no errors
 	if(argc < 6 && !debug) {
-		printf("Incorect Use: %s <Img> <% Error> <% Error Magnitude> <Itterations> <Output at each step: y/n> <Optional: Output File Name Base>\n", argv[0]);
-		printf("Note: % Error and Itterations must be less than double maxval and are formatted as ints for input (no check in place, risk of stack overflow)\n");
-		printf("	% Error Magnitude is the precision (Ex: 1234 -2 == 12.34%), % Error capped at 100%\n	Output setting must be lowercase\n");
+		printf("Incorect Use: %s <Img> <\% Error> <\% Error Magnitude> <Itterations> <Output at each step: y/n> <Optional: Output File Name Base>\n", argv[0]);
+		printf("Note: <\% Error> and <Itterations> must be less than double maxval and are formatted as ints for input (no check in place, risk of stack overflow)\n");
+		printf("	<\% Error Magnitude> is the precision (Ex: 1234 -2 == 12.34%), <\% Error> capped at 100\%\n	Output setting must be lowercase\n");
 		return;
 	}
 	
@@ -141,6 +145,8 @@ void main(int argc, char *argv[]) {//Possitive (> 0) return values indicate prog
 inline static void saveImg(char *pixPtr, int n, char *fName, int nLen) {
 	//char *(pix[w][h][3])=NULL;
 	//)=(char *)pixPtr;//h w for optimization -- h is an unknow distance from h - 1 and h + 1 while w is almost always right next to w - 1 and w + 1, 3 because RGB value
+	
+	char (*pix)[w][h][3] = (char (*)[w][h][3]) pixPtr;
 
 	int NDIG = 0, pow = 1;
 	while(n >= pow) {pow *= 10; NDIG++;}
@@ -152,20 +158,20 @@ inline static void saveImg(char *pixPtr, int n, char *fName, int nLen) {
 		oName[nLen + I] = (temN % 10) + '0';
 		temN /= 10;
 	}
-	oName[nLen + NDIG] = '.'; oName[nLen + NDIG + 1] = 'p'; oName[nLen + NDIG + 2] = 'p'; oName[nLen + NDIG + 3] = 'm'; oName[nLen + NDIG + 4] = '\0';//adds file extension and NULL terminator for the string
+	oName[nLen + NDIG] = '.'; oName[nLen + NDIG + 1] = 'p'; oName[nLen + NDIG + 2] = 'p'; oName[nLen + NDIG + 3] = 'm'; oName[nLen + NDIG + 4] = '\0';
+	//adds file extension and NULL terminator for the string
 	
 	FILE *f2 = fopen(oName, "wb");
 	fputs("P6\n", f2);
 	fprintf(f2, "%d\n%d\n%d\n", w, h, maxC); 
 	for(int I = 0; I < h; I++) {
-		//for(int J = 0; J < w; J++) fwrite(pix[I][J], 1, 3, f2);
-		fwrite()
+		for(int J = 0; J < w; J++) fwrite((*pix)[I][J], 1, 3, f2);// I know this is a rather unsafe way to handle this, but I am lazy and this isnt meant to be a major application just an experiment
 		fputs("\n", f2);
 	}
 	fclose(f2);
 }
 
-inline void generatePoint(point *a) {
+void generatePoint(point *a) {
 	(*a).x = rand() % h;
 	(*a).y = rand() % w;
 	(*a).p = rand() & 0b10;
@@ -173,7 +179,7 @@ inline void generatePoint(point *a) {
 	return;
 }
 
-inline int comparePoints(point *a, point *b) {
+int comparePoints(point *a, point *b) {
 	return ((*a).x == (*b).x && (*a).y == (*b).y && (*a).p == (*b).p) ? 0 : 1;
 } //if points are same: return false, else return true //Done this way as if the same then new one needs to be generated
 
