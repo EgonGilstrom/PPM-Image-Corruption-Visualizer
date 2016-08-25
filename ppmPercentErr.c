@@ -10,18 +10,19 @@ typedef struct {
 	char p;
 } point;
 
-int debug = 0, w, h, maxC;
+int debug = 1, w, h, maxC;
 double err;
 int parseInt(char *str, int indx);
-inline static void saveImg(char *pix, int n, char *fName, int nLen);
+//inline static void saveImg(char *pixPtr, int n, char *fName, int nLen);
+inline static void saveImg(char ***pix, int n, char *fName, int nLen);
 int comparePoints(point *a, point *b);
 void generatePoint(point *a);
 
 void main(int argc, char *argv[]) {//Possitive (> 0) return values indicate programatic error, negative (< 0) value indicate user error, 0 indicates no errors
-	if(argc < 6 && !debug) {
-		printf("Incorect Use: %s <Img> <\% Error> <\% Error Magnitude> <Itterations> <Output at each step: y/n> <Optional: Output File Name Base>\n", argv[0]);
-		printf("Note: <\% Error> and <Itterations> must be less than double maxval and are formatted as ints for input (no check in place, risk of stack overflow)\n");
-		printf("	<\% Error Magnitude> is the precision (Ex: 1234 -2 == 12.34%), <\% Error> capped at 100\%\n	Output setting must be lowercase\n");
+	if(argc < 6) {
+		printf("Incorect Use: %s <Img> <%c Error> <%c Error Magnitude> <Itterations> <Output at each step: y/n> <Optional: Output File Name Base>\n", argv[0], '%', '%');
+		printf("Note: <%c Error> and <Itterations> must be less than double maxval and are formatted as ints for input (no check in place, risk of stack overflow)\n", '%');
+		printf("	<%c Error Magnitude> is the precision (Ex: 1234 -2 == 12.34%c), <%c Error> capped at 100%c\n	Output setting must be lowercase\n", '%', '%', '%', '%');
 		return;
 	}
 	
@@ -51,7 +52,7 @@ void main(int argc, char *argv[]) {//Possitive (> 0) return values indicate prog
 	{
 		char *t;
 		if(argc == 7) t = argv[6];
-		else t = argv[ 1];
+		else t = argv[1];
 		
 		while(t) { nl++; t++; }
 	}
@@ -73,8 +74,12 @@ void main(int argc, char *argv[]) {//Possitive (> 0) return values indicate prog
 		maxC = parseInt(buf, 0);//max color value 4th number
 	}//it is a bit stupid that I am doing this, but this should help to optimize memory usage a little
 	int c = 'a';//arbitrary value just incase c happens to be EOF when defined
-	
-	char pic[h][w][3];//h w for optimization -- h is an unknow distance from h - 1 and h + 1 while w is almost always right next to w - 1 and w + 1, 3 because RGB value
+	printf("Image Width (%d) Height (%d) Max Color Value (%d) Parsed!", w, h, maxC);
+	//char pic[h][w][3];//h w for optimization -- h is an unknow distance from h - 1 and h + 1 while w is almost always right next to w - 1 and w + 1, 3 because RGB value
+	char ***pic;//allocate pic to heap
+	pic = malloc(h);
+	for(int i = 0; i < h; i++) { pic[i] = malloc(w); for(int j = 0; j < w; j++) pic[i][j] = malloc(3); }
+	printf("Memory for Picture successfuly allocated!");
 	{
 		int i, j, x;
 		for(i = 0; i < h && c != EOF; i++) {
@@ -82,7 +87,9 @@ void main(int argc, char *argv[]) {//Possitive (> 0) return values indicate prog
 			fgetc(f); c = fgetc(f);
 		}
 		
-		srand(((((((int) pic[0][0][0]) << 8) + (int) pic[0][0][1]) << 8) + (int) pic[0][0][2]) ^ rand());//generate somewhat, but not really random seed for rng. First bit builds part of an int from 3 chars (4 needed for entire int), second bit makes it a tad bit more random by XORing it by the next random number
+		printf("Picture Succesfully read!");
+		
+		srand(((((((int) pic[0][0][0]) << 8) + (int) pic[1][0][1]) << 8) + (int) pic[0][1][2]) ^ rand());//generate somewhat, but not really random seed for rng. First bit builds part of an int from 3 chars (4 needed for entire int), second bit makes it a tad bit more random by XORing it by the next random number
 		
 		if(debug) {
 			printf("%s <%d, %d> %d\n", magNum, w, h, maxC);
@@ -133,20 +140,24 @@ void main(int argc, char *argv[]) {//Possitive (> 0) return values indicate prog
 			pic[(*pnt).x][(*pnt).y][(*pnt).p] ^= rn;//XOR pixel with random number
 			i++;
 		}
-		if(output == 'y') saveImg((char *)pic, IT, argc == 7 ? argv[6] : argv[1], nl);
+		//if(output == 'y') saveImg((char *)pic, IT, argc == 7 ? argv[6] : argv[1], nl);
+		if(output == 'y') saveImg(pic, IT, argc == 7 ? argv[6] : argv[1], nl);
 	}
-	if(output == 'n') saveImg((char *)pic, 0, argc == 7 ? argv[6] : argv[1], nl);
+	//if(output == 'n') saveImg((char *)pic, 0, argc == 7 ? argv[6] : argv[1], nl);
+	if(output == 'n') saveImg(pic, 0, argc == 7 ? argv[6] : argv[1], nl);
 	
 	free(corps);
 	free(pnt);
+	for(int i = 0; i < h; i++) { for(int j = 0; j < w; j++) free(pic[i][j]); free(pic[i]); }//free pic
 }
 
 
-inline static void saveImg(char *pixPtr, int n, char *fName, int nLen) {
+//inline static void saveImg(char *pixPtr, int n, char *fName, int nLen) {
+inline static void saveImg(char ***pix, int n, char *fName, int nLen) {
 	//char *(pix[w][h][3])=NULL;
 	//)=(char *)pixPtr;//h w for optimization -- h is an unknow distance from h - 1 and h + 1 while w is almost always right next to w - 1 and w + 1, 3 because RGB value
 	
-	char (*pix)[w][h][3] = (char (*)[w][h][3]) pixPtr;
+	//char (*pix)[w][h][3] = (char (*)[w][h][3]) pixPtr;
 
 	int NDIG = 0, pow = 1;
 	while(n >= pow) {pow *= 10; NDIG++;}
@@ -165,7 +176,8 @@ inline static void saveImg(char *pixPtr, int n, char *fName, int nLen) {
 	fputs("P6\n", f2);
 	fprintf(f2, "%d\n%d\n%d\n", w, h, maxC); 
 	for(int I = 0; I < h; I++) {
-		for(int J = 0; J < w; J++) fwrite((*pix)[I][J], 1, 3, f2);// I know this is a rather unsafe way to handle this, but I am lazy and this isnt meant to be a major application just an experiment
+		//for(int J = 0; J < w; J++) fwrite((*pix)[I][J], 1, 3, f2);// I know this is a rather unsafe way to handle this, but I am lazy and this isnt meant to be a major application just an experiment
+		for(int J = 0; J < w; J++) fwrite(pix[I][J], 1, 3, f2);// I know this is a rather unsafe way to handle this, but I am lazy and this isnt meant to be a major application just an experiment
 		fputs("\n", f2);
 	}
 	fclose(f2);
